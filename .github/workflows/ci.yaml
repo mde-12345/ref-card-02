@@ -8,10 +8,14 @@ on:
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ref-card-02
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/ref-card-02
 
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
@@ -36,3 +40,17 @@ jobs:
       - name: Push image
         if: github.event_name == 'push'
         run: docker push $IMAGE_NAME:latest
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GitHub Container Registry
+        if: github.event_name == 'push'
+        run: |
+          docker tag $IMAGE_NAME:latest $GHCR_IMAGE:latest
+          docker push $GHCR_IMAGE:latest
